@@ -1,32 +1,20 @@
-uDma: DMA.UDMA @ sysbus 0x400FF000
+uDma: DMA.UDMA @ sysbus 0x40020000
     -> nvic@46
 
-uart0: UART.PL011 @ sysbus 0x4000C000
+uart0: UART.PL011 @ sysbus 0x40001000
     -> nvic@5
 
-watchdog: Timers.CC2538Watchdog @ sysbus 0x400D5000
+watchdog: Timers.CC2538Watchdog @ sysbus 0x40080000
     periodInMs: 500
 
-sleepTimer: Timers.CC2538SleepTimer @ sysbus 0x400D5040
-    -> nvic@145
-
-uart1: UART.PL011 @ sysbus 0x4000D000
+uart1: UART.PL011 @ sysbus 0x4000B000
     -> nvic@6
 
 ram: Memory.MappedMemory @ sysbus 0x20000000
     size: 0x14000
 
-gpioA: GPIOPort.CC2538_GPIO @ sysbus 0x400D9000
+gpioA: GPIOPort.CC2538_GPIO @ sysbus 0x40022000
     -> nvic@0
-
-gpioB: GPIOPort.CC2538_GPIO @ sysbus 0x400DA000
-    -> nvic@1
-
-gpioC: GPIOPort.CC2538_GPIO @ sysbus 0x400DB000
-    -> nvic@2
-
-gpioD: GPIOPort.CC2538_GPIO @ sysbus 0x400DC000
-    -> nvic@3
 
 rom: Memory.MappedMemory @ sysbus 0x10000000
     size: 0x20000
