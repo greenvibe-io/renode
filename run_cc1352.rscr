@@ -5,4 +5,4 @@ showAnalyzer uart0
 cpu GetRegistersValues
 sysbus LoadELF "../gv-usd-device-and-hub/gvdevice/gvdevice.out"
 cpu GetRegistersValues
-start
+machine StartGdbServer 3333
