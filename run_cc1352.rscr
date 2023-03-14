@@ -1,0 +1,8 @@
+mach create
+machine LoadPlatformDescription @platforms/cpus/cc1352r2.repl
+using sysbus
+showAnalyzer uart0
+cpu GetRegistersValues
+sysbus LoadELF "../gv-usd-device-and-hub/gvdevice/gvdevice.out"
+cpu GetRegistersValues
+start
