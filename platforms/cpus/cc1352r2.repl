@@ -28,10 +28,10 @@ gpioC: GPIOPort.CC2538_GPIO @ sysbus 0x400DB000
 gpioD: GPIOPort.CC2538_GPIO @ sysbus 0x400DC000
     -> nvic@3
 
-rom: Memory.MappedMemory @ sysbus 0x0
+rom: Memory.MappedMemory @ sysbus 0x10000000
     size: 0x20000
 
-flash: Memory.MappedMemory @ sysbus 0x200000
+flash: Memory.MappedMemory @ sysbus 0x000000
     size: 0x100000
 
 nvic: IRQControllers.NVIC @ sysbus 0xE000E000
