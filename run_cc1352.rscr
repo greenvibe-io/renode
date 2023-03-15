@@ -3,6 +3,10 @@ machine LoadPlatformDescription @platforms/cpus/cc1352r2.repl
 using sysbus
 showAnalyzer uart0
 cpu GetRegistersValues
+# Debugging measures
+cpu LogFunctionNames true
+sysbus LogAllPeripheralsAccess true
+# cpu EnableExecutionTracing @path-to-file <mode>
 sysbus LoadELF "../gv-usd-device-and-hub/gvdevice/gvdevice.out"
 cpu GetRegistersValues
 machine StartGdbServer 3333
