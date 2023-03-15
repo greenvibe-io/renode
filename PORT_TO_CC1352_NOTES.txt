@@ -1,0 +1,3 @@
+Need to emulate the regiters used by GetChipFamily and return 4 (FAMILY_CC13x2_CC26x2, chipinfo.h)
+and ChipInfo_HwRevisionIs_GTEQ_2_0
+
