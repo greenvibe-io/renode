@@ -1,3 +1,9 @@
 Need to emulate the regiters used by GetChipFamily and return 4 (FAMILY_CC13x2_CC26x2, chipinfo.h)
 and ChipInfo_HwRevisionIs_GTEQ_2_0
 
+Missing emulation of FCFG1 at 0x50001000
+0x5000131C - 
+ 31Ch FCFG1_REVISION Factory Configuration (FCFG1) Revision Section 11.4.1.50
+ 
+0x50001318 - 
+ 318h ICEPICK_DEVICE_ID IcePick Device Identification Section 11.4.1.49
