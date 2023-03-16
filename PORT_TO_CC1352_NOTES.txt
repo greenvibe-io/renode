@@ -7,3 +7,22 @@ Missing emulation of FCFG1 at 0x50001000
  
 0x50001318 - 
  318h ICEPICK_DEVICE_ID IcePick Device Identification Section 11.4.1.49
+
+09:53:35.6214 [WARNING] sysbus: [cpu: 0x282CC] WriteDoubleWord to non existing peripheral at 0x42600484, value 0x0.
+09:53:35.6221 [WARNING] sysbus: [cpu: 0xF07F010] ReadByte from non existing peripheral at 0xF07F010.
+09:53:35.6222 [ERROR] cpu: CPU abort [PC=0xF07F010]: Trying to execute code outside RAM or ROM at 0x0F07F010.
+
+Boot_trimDevice
+
+using 'set substitute-path' to access source correctly.
+
+driverlib/setup.c SetupTrimDevice
+- HWREGBITW( FLASH_BASE + FLASH_O_CFG, FLASH_CFG_DIS_STANDBY_BITN ) = 0;
+- causes write to 0x42600484,
+ - ignoring it seems fine (i.e. not emulating)
+ SetupSetCacheModeAccordingToCcfgSetting
+ - aboirts (SIGABRT)
+ - gdb: catch SIGABRT
+  - trying to run from 0xF07F010
+
+SetupSetCacheModeAccordingToCcfgSetting
