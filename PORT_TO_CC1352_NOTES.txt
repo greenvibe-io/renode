@@ -26,3 +26,12 @@ driverlib/setup.c SetupTrimDevice
   - trying to run from 0xF07F010
 
 SetupSetCacheModeAccordingToCcfgSetting
+
+Loaded ROM file - it already specified the correct address. Kindly provided via the simplelink SDK.
+
+Now the PRCM words are read and need to be emulated:
+
+7.8.2.50 PDSTAT0 Register (Offset = 140h) [Reset = 00000000h]
+7.8.2.58 PDSTAT1 Register (Offset = 194h) [Reset = 0000001Ah]
+
+

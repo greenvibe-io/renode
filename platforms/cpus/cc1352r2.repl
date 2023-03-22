@@ -58,6 +58,16 @@ ffcg1: Memory.MappedMemory @ sysbus 0x50001000
         // FCFG1_REVISION
         WriteDoubleWord 0x31C 0x2A
 
+// TODO: peripheral. Right now just emulating the on reset values
+// from swcu185e.pdf
+prcm: Memory.MappedMemory @ sysbus 0x40082000
+    size: 0x1000
+    init:
+        // PDSTAT0 7.8.2.50
+        WriteDoubleWord 0x140 0x0
+        // PDSTAT1 7.8.2.58
+        WriteDoubleWord 0x194 0x0000001A
+
 
 sysbus:
     init:
