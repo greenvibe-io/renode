@@ -8,7 +8,7 @@ function onexit {
 
 trap onexit EXIT
 
-renode --console --disable-xwt test_cc1352.rscr | tee test_output.txt &
+renode --console --disable-xwt test_cc1352.rscr | sed -e 's/WARNING//' | sed -e 's/sysbus//' | sed -e 's/non existing peripheral at//' | sed -e 's/ReadDoubleWord/R/' | sed -e 's/WriteDoubleWord/W/' | tee test_output.txt &
 # TODO: find the name of the variable holding the last executed process background PID
 #RENODE=$$
 sleep 40

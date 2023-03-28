@@ -17,11 +17,14 @@ gpioA: GPIOPort.CC2538_GPIO @ sysbus 0x40022000
     -> nvic@0
 
 rom: Memory.MappedMemory @ sysbus 0x10000000
+    // 255 kB of Boot ROM
     size: 0x20000
 
 flash: Memory.MappedMemory @ sysbus 0x000000
+    // 352 kB of FLASH
     size: 0x100000
 
+// unhandled read from offset 0x8, and write of 2 to same
 nvic: IRQControllers.NVIC @ sysbus 0xE000E000
     systickFrequency: 1000000
     IRQ -> cpu@0
@@ -31,21 +34,36 @@ cpu: CPU.CortexM @ sysbus
     cpuType: "cortex-m4f"
     PerformanceInMips: 48
 
+// this is definitely wrong, cc1352r2 radio is totally different,
+// there is a register based interface plus RAM from the Radio's cortex-M0 mapped
+// into same global address space.
 radio: Wireless.CC2538RF @ sysbus 0x40040000
     IRQ -> nvic@141 | nvic@26
 
+// hmm? leaving as is.
 bitband: Miscellaneous.BitBanding @ sysbus <0x22000000, +0x20000>
     peripheralBase: 0x20000000
 
+// hmm? is there crypto?
 crypto: Miscellaneous.CC2538_Cryptoprocessor @ sysbus 0x40024000
     -> nvic@143
 
+// TODO: flash is totally different ; for now just add a memory mapped node to fill the missing size
+// need to build with a new peripheral class.
+// flashCtrl: MTD.CC1352FlashController @ sysbus 0x40030000
 flashCtrl: MTD.CC2538FlashController @ sysbus 0x40030000
     flash: flash
 
+flashCtrlMissing: Memory.MappedMemory @ sysbus 0x40031000
+    size: 0x2000
+    //init:
+    
+
+// There is an SSI0 at 40000000 but did not check if it is the same as 2538
 ssi0: SPI.CC2538_SSI @ sysbus 0x40000000
     -> nvic@7
 
+// ditto
 ssi1: SPI.CC2538_SSI @ sysbus 0x40008000
     -> nvic@34
 
@@ -64,10 +82,35 @@ prcm: Memory.MappedMemory @ sysbus 0x40082000
     size: 0x1000
     init:
         // PDSTAT0 7.8.2.50
-        WriteDoubleWord 0x140 0x0
+        // set to PRCM_PDSTAT0_PERIPH_ON to match expectation by Power_setDependency from GPIO_Init
+        WriteDoubleWord 0x140 0x6
         // PDSTAT1 7.8.2.58
         WriteDoubleWord 0x194 0x0000001A
+        // allow PRCMLoadGet to return true.
+        // ClockLoadCtl
+        WriteDoubleWord 0x28 0x2
 
+aon_pmctl: Memory.MappedMemory @ sysbus 0x40090000
+    size: 0x2000
+    
+
+// TODO: peripheral
+vims: Memory.MappedMemory @ sysbus 0x40034000
+    size: 0x1000
+    init:
+        // STAT 8.7.2.1
+        WriteDoubleWord 0x0 0x0
+        // CTL 8.7.2.2
+        WriteDoubleWord 0x4 0x0
+
+// TODO peripheral
+ccfg: Memory.MappedMemory @ sysbus 0x50003000
+    size: 0x2000
+    init:
+        // SIZE_AND_DIS_FLAGS 11.2.1.3
+        WriteDoubleWord 0x1FB0 0xffffffff
+        // MODE_CONF 11.2.1.4
+        WriteDoubleWord 0x1FB4 0xffffffff
 
 sysbus:
     init:
