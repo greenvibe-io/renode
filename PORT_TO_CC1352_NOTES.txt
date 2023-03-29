@@ -76,3 +76,176 @@ Versatile Instruction Memory System
 // keep a list of helpful classes:
 src/Infrastructure/src/Emulator/Main/Core/Structure/Registers/PeripheralRegister.cs
 src/Infrastructure/src/Emulator/Main/Core/Structure/Registers/PeripheralRegisterExtensions.cs
+
+
+Tue Mar 28 12:48:59 PM IDT 2023
+Setting minimal registers, not yet implemented a new peripheral.
+
+RF_ScheduleCmdParams_init
+
+common/easylink/EasyLink.c
+ - 854
+ - 1018 createTxAdvFromTx
+ - 1113 abort - RF_runCmd
+  - /project/source/ti/drivers/rf/RFCC26X2_multiMode.c,
+ : 5172
+  - RF_postCmd
+ break in RF_dispatchNextEvent
+
+Swi_schedule ?
+tirtos7/packages/ti/sysbios/knl/Swi.c
+
+Hwi_switchAndRunFunc(&Swi_runLoop);
+ - cannot b
+ - b on ti_sysbios_knl_Hwi_switchAndRunFunc
+
+../../../family/arm/m3/Hwi_asm_switch_gnu.sv7M
+
+branches to Swi.c:206 Swi_runLoop(void)
+
+ti_sysbios_knl_Swi_runLoop
+
+Swi.c:218 Queue_dequeu(maxQ) writes to:
+19:35:30.0624 [WARNING] sysbus: [cpu: 0x8502] WriteByte to non existing peripheral at 0x11683A24, value 0x20.
+19:35:30.0624 [WARNING] sysbus: [cpu: 0x8502] WriteByte to non existing peripheral at 0x11683A23, value 0x0. 
+19:35:30.0625 [WARNING] sysbus: [cpu: 0x8502] WriteByte to non existing peripheral at 0x11683A22, value 0xF2.
+19:35:30.0625 [WARNING] sysbus: [cpu: 0x8502] WriteByte to non existing peripheral at 0x11683A21, value 0x28.
+
+swi->fxn is wrong:
+ - 0x12b7830
+
+swi is the output from Queue_dequeue, which does bad reads
+ - so the peripheral needs to be emulated.
+
+ti_sysbios_knl_Queue_dequeue
+ - writes to next?? with a correct output.
+ - so for some reason we got to 0x11683A24 as next
+
+This is wrong:
+$11 = (ti_sysbios_knl_Queue_Handle) 0x2000f228 <ti_sysbios_knl_ClockSupport_timerStruct+88>
+(gdb) p *maxQ
+$12 = {
+  next = 0x11683a1d,
+  prev = 0x0 <ti_sysbios_family_arm_m3_Hwi_resetVectors>
+}
+
+difference at: (stacks identical)
+
+gdb) bt
+#0  ti_sysbios_knl_Swi_runLoop () at /home/alon/ti/simplelink_cc13xx_cc26xx_sdk_6_10_00_29/kernel/tirtos7/packages/ti/sysbios/knl/Swi.c:206
+#1  0x00028d3e in ti_sysbios_family_arm_m3_Hwi_switchAndRunFunc () at ../../../family/arm/m3/Hwi_asm_switch_gnu.sv7M:64
+#2  0x00029e6a in _reset_fxns_done_ () at ../../../family/arm/vxm/boot/boot_gnu.asm:67
+
+In actual hardware:
+(gdb) p ti_sysbios_knl_Swi_Module_state
+$2 = {
+  objQ = {
+    next = 0x20000388 <ti_sysbios_knl_Clock_Module_state+24>,
+    prev = 0x2000dba0 <RF_swiHwObj+8>
+  },
+  locked = true,
+  curSet = 1,
+  curTrigger = 0,
+  curSwi = 0x0 <ti_sysbios_family_arm_m3_Hwi_resetVectors>,
+  curQ = 0x0 <ti_sysbios_family_arm_m3_Hwi_resetVectors>,
+  readyQ = 0x2000f230 <ti_sysbios_knl_Swi_readyQs>,
+  constructedSwis = 0x0 <ti_sysbios_family_arm_m3_Hwi_resetVectors>,
+  initDone = true
+}
+
+(ti_sysbios_knl_Swi_Module_state == Swi_module via define)
+
+In renode one difference:
+  objQ = {
+    next = 0x20000388 <ti_sysbios_knl_Clock_Module_state+24>,
+    prev = 0x2000eccc <uartCC26XXObjects+572>
+  },
+
+Error then propogates(?):
+swi is invalid:
+
+renode:
+(gdb) bt
+#0  ti_sysbios_knl_Swi_run (swi=0xa7c5 <ti_sysbios_runtime_System_doPrint+704>) at /home/alon/ti/simplelink_cc13xx_cc26xx_sdk_6_10_00_29/kernel/tirtos7/packages/ti/sysbios/knl/Swi.c:146
+#1  0x00008c44 in ti_sysbios_knl_Swi_runLoop () at /home/alon/ti/simplelink_cc13xx_cc26xx_sdk_6_10_00_29/kernel/tirtos7/packages/ti/sysbios/knl/Swi.c:225
+#2  0x00028d3e in ti_sysbios_family_arm_m3_Hwi_switchAndRunFunc () at ../../../family/arm/m3/Hwi_asm_switch_gnu.sv7M:64
+#3  0x00029e6a in _reset_fxns_done_ () at ../../../family/arm/vxm/boot/boot_gnu.asm:67
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+
+real:
+(gdb) bt
+#0  ti_sysbios_knl_Swi_run (swi=0x2000db5c <RF_swiFsmObj>) at /home/alon/ti/simplelink_cc13xx_cc26xx_sdk_6_10_00_29/kernel/tirtos7/packages/ti/sysbios/knl/Swi.c:138
+#1  0x00008c44 in ti_sysbios_knl_Swi_runLoop () at /home/alon/ti/simplelink_cc13xx_cc26xx_sdk_6_10_00_29/kernel/tirtos7/packages/ti/sysbios/knl/Swi.c:225
+#2  0x00028d3e in ti_sysbios_family_arm_m3_Hwi_switchAndRunFunc () at ../../../family/arm/m3/Hwi_asm_switch_gnu.sv7M:64
+#3  0x00029e6a in _reset_fxns_done_ () at ../../../family/arm/vxm/boot/boot_gnu.asm:67
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+
+going back maxQ is different:
+
+Seems that maxQ is pointing to a wrong address, off by 2
+
+Real:
+(gdb) p ti_sysbios_knl_Swi_Module_state.readyQ
+$14 = (ti_sysbios_knl_Queue_Handle) 0x2000f230 <ti_sysbios_knl_Swi_readyQs>
+(gdb) p maxQ
+$15 = (ti_sysbios_knl_Queue_Handle) 0x2000f230 <ti_sysbios_knl_Swi_readyQs>
+
+Renode:
+(gdb) p ti_sysbios_knl_Swi_Module_state.readyQ
+$10 = (ti_sysbios_knl_Queue_Handle) 0x2000f230 <ti_sysbios_knl_Swi_readyQs>
+(gdb) p maxQ
+$11 = (ti_sysbios_knl_Queue_Handle) 0x2000f228 <ti_sysbios_knl_ClockSupport_timerStruct+88>
+
+Both
+ti_sysbios_knl_Swi_Module_state.curSet == 0
+
+Both
+(gdb) p ti_sysbios_knl_Swi_Module_state.readyQ
+$16 = (ti_sysbios_knl_Queue_Handle) 0x2000f230 <ti_sysbios_knl_Swi_readyQs>
+
+Key:
+208         /* refresh maxQ */
+209         maxQ = (Queue_Handle)((uint8_t *)(Swi_module->readyQ) +
+210                (Intrinsics_maxbit(Swi_module->curSet)*(2U*sizeof(void *))));
+
+Both
+(gdb) p ti_sysbios_knl_Intrinsics_maxbit
+$20 = {unsigned int (unsigned int)} 0x8b42 <ti_sysbios_knl_Intrinsics_maxbit>
+
+Both
+(gdb) p ti_sysbios_knl_Intrinsics_maxbit(0)
+$18 = 4294967295
+
+(0xffffffff)
+
+Both
+(gdb) p ti_sysbios_knl_Intrinsics_maxbit(1)
+$24 = 0
+
+Breaking on both
+ti_sysbios_knl_Swi_run
+and
+ti_sysbios_knl_Swi_runLoop
+
+Real:
+First triggered ti_sysbios_knl_Swi_run
+
+Renode:
+First triggered ti_sysbios_knl_Swi_runLoop
+
+>>> ? Perhaps this is the CCFG I forgot to load? i.e. the ccfg segment?
+
+Swi.c:424
+
+ok - problem is that ti_sysbios_knl_Swi_Module_state.curSet should be 32
+but it is 0.
+Then the parameter to Intrisincs_maxbit is wrong (0, not 32) and it returns -1 (0xffffffff)
+resulting in an incorrect swi, and all hell breaks loose.
+
+So Intrinsics_maxbit(0) == -1 ; should not be but it is.
+
+Renode problem (harmless warnings) when calling ti_sysbios_knl_Intrinsics_maxbit:
+21:23:41.8351 [WARNING] cpu: Writing to register #29 failed, register doesn't exit.
+21:23:41.8762 [WARNING] cpu: Writing to register #30 failed, register doesn't exit.
+21:23:41.9172 [WARNING] cpu: Writing to register #31 failed, register doesn't exit.
+
