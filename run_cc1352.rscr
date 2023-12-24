@@ -11,6 +11,6 @@ sysbus LogAllPeripheralsAccess true
 # Load ROM
 sysbus LoadELF "../ti_rtos_cc13x2_cc26x2/rom/driverlib.elf"
 # Load program
-sysbus LoadELF "../gv-usd-device-and-hub/gvdevice/gvdevice.out"
+sysbus LoadELF "../gv-firmware/gvdevice/gvdevice.out"
 cpu GetRegistersValues
 machine StartGdbServer 3333
