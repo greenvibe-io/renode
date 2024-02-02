@@ -1,2 +1,3 @@
 #!/bin/bash
-renode --disable-xwt --console run_cc1352.rscr
+cd $(dirname $0)
+./renode --disable-xwt --console run_cc1352.rscr
