@@ -1,48 +1,47 @@
-uDma: DMA.UDMA @ sysbus 0x40020000
-    -> nvic@46
+cpu: CPU.CortexM @ sysbus
+    nvic: nvic
+    cpuType: "cortex-m4f"
+    PerformanceInMips: 48
 
-uart0: UART.PL011 @ sysbus 0x40001000
-    -> nvic@5
-
-watchdog: Timers.CC2538Watchdog @ sysbus 0x40080000
-    periodInMs: 500
-
-uart1: UART.PL011 @ sysbus 0x4000B000
-    -> nvic@6
-
-ram: Memory.MappedMemory @ sysbus 0x20000000
-    size: 0x14000
-
-gpioA: GPIOPort.CC2538_GPIO @ sysbus 0x40022000
-    -> nvic@0
+flash: Memory.MappedMemory @ sysbus 0x000000
+    // 352 kB of FLASH
+    size: 0x100000
 
 rom: Memory.MappedMemory @ sysbus 0x10000000
     // 255 kB of Boot ROM
     size: 0x20000
 
-flash: Memory.MappedMemory @ sysbus 0x000000
-    // 352 kB of FLASH
-    size: 0x100000
+ram: Memory.MappedMemory @ sysbus 0x20000000
+    size: 0x14000
+
+// hmm? leaving as is.
+bitband: Miscellaneous.BitBanding @ sysbus <0x22000000, +0x20000>
+    peripheralBase: 0x20000000
 
 // unhandled read from offset 0x8, and write of 2 to same
 nvic: IRQControllers.NVIC @ sysbus 0xE000E000
     systickFrequency: 1000000
     IRQ -> cpu@0
 
-cpu: CPU.CortexM @ sysbus
-    nvic: nvic
-    cpuType: "cortex-m4f"
-    PerformanceInMips: 48
+// There is an SSI0 at 40000000 but did not check if it is the same as 2538
+ssi0: SPI.CC2538_SSI @ sysbus 0x40000000
+    -> nvic@7
 
-// this is definitely wrong, cc1352r2 radio is totally different,
-// there is a register based interface plus RAM from the Radio's cortex-M0 mapped
-// into same global address space.
-radio: Wireless.CC2538RF @ sysbus 0x40040000
-    IRQ -> nvic@141 | nvic@26
+uart0: UART.PL011 @ sysbus 0x40001000
+    -> nvic@5
 
-// hmm? leaving as is.
-bitband: Miscellaneous.BitBanding @ sysbus <0x22000000, +0x20000>
-    peripheralBase: 0x20000000
+// ditto
+ssi1: SPI.CC2538_SSI @ sysbus 0x40008000
+    -> nvic@34
+
+uart1: UART.PL011 @ sysbus 0x4000B000
+    -> nvic@6
+
+uDma: DMA.UDMA @ sysbus 0x40020000
+    -> nvic@46
+
+gpioA: GPIOPort.CC2538_GPIO @ sysbus 0x40022000
+    -> nvic@0
 
 // hmm? is there crypto?
 crypto: Miscellaneous.CC2538_Cryptoprocessor @ sysbus 0x40024000
@@ -57,15 +56,27 @@ flashCtrl: MTD.CC2538FlashController @ sysbus 0x40030000
 flashCtrlMissing: Memory.MappedMemory @ sysbus 0x40031000
     size: 0x2000
     //init:
-    
 
-// There is an SSI0 at 40000000 but did not check if it is the same as 2538
-ssi0: SPI.CC2538_SSI @ sysbus 0x40000000
-    -> nvic@7
+// TODO: peripheral
+vims: Memory.MappedMemory @ sysbus 0x40034000
+    size: 0x1000
+    init:
+        // STAT 8.7.2.1
+        WriteDoubleWord 0x0 0x0
+        // CTL 8.7.2.2
+        WriteDoubleWord 0x4 0x0
 
-// ditto
-ssi1: SPI.CC2538_SSI @ sysbus 0x40008000
-    -> nvic@34
+// this is definitely wrong, cc1352r2 radio is totally different,
+// there is a register based interface plus RAM from the Radio's cortex-M0 mapped
+// into same global address space.
+radio: Wireless.CC2538RF @ sysbus 0x40040000
+    IRQ -> nvic@141 | nvic@26
+
+watchdog: Timers.CC2538Watchdog @ sysbus 0x40080000
+    periodInMs: 500
+
+ioc: Memory.MappedMemory @ sysbus 0x40081000
+    size: 0x1000
 
 // TODO: peripheral. Right now just emulating the on reset values
 // from swcu185e.pdf
@@ -83,16 +94,12 @@ prcm: Memory.MappedMemory @ sysbus 0x40082000
 
 aon_pmctl: Memory.MappedMemory @ sysbus 0x40090000
     size: 0x2000
-    
 
-// TODO: peripheral
-vims: Memory.MappedMemory @ sysbus 0x40034000
+aon_rtc: Memory.MappedMemory @ sysbus 0x40092000
     size: 0x1000
-    init:
-        // STAT 8.7.2.1
-        WriteDoubleWord 0x0 0x0
-        // CTL 8.7.2.2
-        WriteDoubleWord 0x4 0x0
+
+aon_event: Memory.MappedMemory @ sysbus 0x40093000
+    size: 0x1000
 
 // TODO: read only constants ; is there no better way to implement??
 ffcg1: Memory.MappedMemory @ sysbus 0x50001000
@@ -114,6 +121,33 @@ ccfg: Memory.MappedMemory @ sysbus 0x50003000
 
 sysbus:
     init:
+        // no idea - called from NOROM_SetupTrimDevice before main call
+        // so related to flash?
+        // 23:24:02.7418 [WARNING] sysbus: [cpu: 0x5CC8] WriteDoubleWord to non existing peripheral at 0x42600484, value 0x0.
+        // 23:24:02.7423 [INFO] cpu: Entering function SetupSetCacheModeAccordingToCcfgSetting (entry) at 0x10004356
+        // 23:24:02.7434 [WARNING] sysbus: [cpu: 0x10004356] ReadDoubleWord from non existing peripheral at 0x4268000C.
+        // 23:24:02.7435 [INFO] cpu: Entering function SetupSetCacheModeAccordingToCcfgSetting at 0x1000435E
+        // 23:24:02.7443 [INFO] cpu: Entering function SetupSetCacheModeAccordingToCcfgSetting at 0x10004374
+        // 23:24:02.7444 [INFO] cpu: Entering function OSC_HPOSCRelativeFrequencyOffsetToRFCoreFormatConvert at 0x10003BEC
+        // 23:24:02.7445 [INFO] cpu: Entering function PRCMPeripheralDeepSleepEnable at 0x10003638
+        // 23:24:02.7445 [INFO] cpu: Entering function NOROM_SetupTrimDevice at 0x5CD2
+        // 23:24:02.7446 [WARNING] sysbus: [cpu: 0x5CD2] ReadDoubleWord from non existing peripheral at 0x43280180.
+        // 23:24:02.7447 [INFO] cpu: Entering function NOROM_SetupTrimDevice at 0x5CE2
+        // 23:24:02.7456 [INFO] cpu: Entering function NOROM_SetupTrimDevice at 0x5D18
+        // 23:24:02.7457 [WARNING] sysbus: [cpu: 0x5D18] WriteDoubleWord to non existing peripheral at 0x4324001C, value 0x1.
+        // 23:24:02.7458 [INFO] cpu: Entering function IntPendClear (entry) at 0x100030C4
+        // 23:24:02.7458 [INFO] cpu: Entering function IntPendClear at 0x100030CC
+        // 23:24:02.7459 [INFO] cpu: Entering function IntPendClear at 0x100030D0
+        // 23:24:02.7460 [INFO] cpu: Entering function IntPendClear at 0x100030DE
+        // 23:24:02.7461 [INFO] nvic: [cpu: 0x100030DE] WriteUInt32 to 0x280 (ClearPending), value 0x10.
+        // 23:24:02.7476 [INFO] cpu: Entering function NOROM_SetupTrimDevice at 0x5D28
+        // 23:24:02.7481 [WARNING] sysbus: [cpu: 0x5D28] WriteDoubleWord to non existing peripheral at 0x43240000, value 0x1.
+        // 23:24:02.7482 [WARNING] sysbus: [cpu: 0x5D28] ReadDoubleWord from non existing peripheral at 0x4268000C.
+        // also later from TimerP_start
+        // 23:24:02.8334 [INFO] cpu: Entering function TimerP_start at 0x5746
+        // 23:24:02.8334 [WARNING] sysbus: [cpu: 0x5752] WriteDoubleWord to non existing peripheral at 0x43240280, value 0x1.
+        SilenceRange <0x426000000, 0x43250000>
+
         Tag <0x400D2000, 0x400D2FFF> "SYS_CTRL_CLOCK_CTRL" 1
         Tag <0x40088664, 0x40088667> "RFCORE_XREG_RSSISTAT" 1
         Tag <0x400D2004, 0x400D2007> "CLOCK_STATUS" 0x10004B0
