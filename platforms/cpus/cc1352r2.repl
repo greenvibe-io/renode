@@ -67,15 +67,6 @@ ssi0: SPI.CC2538_SSI @ sysbus 0x40000000
 ssi1: SPI.CC2538_SSI @ sysbus 0x40008000
     -> nvic@34
 
-// TODO: read only constants ; is there no better way to implement??
-ffcg1: Memory.MappedMemory @ sysbus 0x50001000
-    size: 0x1000
-    init:
-        // FCFG1_ICEPICK_DEVICE_ID
-        WriteDoubleWord 0x318 0x3bb4102f
-        // FCFG1_REVISION
-        WriteDoubleWord 0x31C 0x2A
-
 // TODO: peripheral. Right now just emulating the on reset values
 // from swcu185e.pdf
 prcm: Memory.MappedMemory @ sysbus 0x40082000
@@ -102,6 +93,15 @@ vims: Memory.MappedMemory @ sysbus 0x40034000
         WriteDoubleWord 0x0 0x0
         // CTL 8.7.2.2
         WriteDoubleWord 0x4 0x0
+
+// TODO: read only constants ; is there no better way to implement??
+ffcg1: Memory.MappedMemory @ sysbus 0x50001000
+    size: 0x1000
+    init:
+        // FCFG1_ICEPICK_DEVICE_ID
+        WriteDoubleWord 0x318 0x3bb4102f
+        // FCFG1_REVISION
+        WriteDoubleWord 0x31C 0x2A
 
 // TODO peripheral
 ccfg: Memory.MappedMemory @ sysbus 0x50003000
