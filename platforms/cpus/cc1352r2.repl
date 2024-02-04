@@ -93,6 +93,22 @@ prcm: Memory.MappedMemory @ sysbus 0x40082000
         WriteDoubleWord 0x28 0x2
         // permit all RF modes for RF_open to succeed
         WriteDoubleWord 0x1D4 0xf
+        // PRCMPowerDomainsAllOn(1) should return PRCM_DOMAIN_POWER_ON
+        // 651      ui32StatusRegister0 = HWREG(PRCM_BASE + NONSECURE_OFFSET + PRCM_O_PDSTAT0);                                                                                                                                                                                   │
+        // 652      ui32StatusRegister1 = HWREG(PRCM_BASE + NONSECURE_OFFSET + PRCM_O_PDSTAT1);
+        // PRCM_O_PDSTAT0 - RFC on (1) and Periph on (4) and Serial on (2)
+        WriteDoubleWord 0x140 7
+        // PRCM_O_PDSTAT1 - RFC on (RFC = RF Core)
+        WriteDoubleWord 0x194 4
+        // Now getting stuck at wait for interrupt (wfi) - so we need to actually emulate something. In this case
+        // The RFC is supposed to answer because it was poked in some way. Oh bugger.
+        // #0  PowerCC26XX_standbyPolicy () at dpl/PowerCC26X2_nortos.c:101
+        // #1  0x00004f10 in SemaphoreP_pend (handle=handle@entry=0x200006c8 <rfObject+80>, timeout=timeout@entry=4294967295) at dpl/SemaphoreP_nortos.c:234
+        // #2  0x00003628 in RF_pendCmd (bmEvent=8070450532247928842, ch=1, h=0x20000678 <rfObject>) at /project/source/ti/drivers/rf/RFCC26X2_multiMode.c:5156
+        // #3  RF_pendCmd (h=0x20000678 <rfObject>, ch=<optimized out>, bmEvent=<optimized out>) at /project/source/ti/drivers/rf/RFCC26X2_multiMode.c:5090
+        // #4  0x0000104a in EasyLink_init (params=0x200056d0) at ../easylink/EasyLink_nortos.c:1081
+        // #5  0x00000458 in mainThread (arg0=0x0 <resetVectors>) at ../rfEasyLinkEchoRx_nortos.c:138
+        // #6  0x000015a2 in main () at ../main_nortos.c:61
 
 aon_pmctl: Memory.MappedMemory @ sysbus 0x40090000
     size: 0x2000
@@ -101,6 +117,9 @@ aon_rtc: Memory.MappedMemory @ sysbus 0x40092000
     size: 0x1000
 
 aon_event: Memory.MappedMemory @ sysbus 0x40093000
+    size: 0x1000
+
+aon_batmon: Memory.MappedMemory @ sysbus 0x40095000
     size: 0x1000
 
 // TODO: read only constants ; is there no better way to implement??
