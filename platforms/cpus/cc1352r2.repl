@@ -91,6 +91,8 @@ prcm: Memory.MappedMemory @ sysbus 0x40082000
         // allow PRCMLoadGet to return true.
         // ClockLoadCtl
         WriteDoubleWord 0x28 0x2
+        // permit all RF modes for RF_open to succeed
+        WriteDoubleWord 0x1D4 0xf
 
 aon_pmctl: Memory.MappedMemory @ sysbus 0x40090000
     size: 0x2000
