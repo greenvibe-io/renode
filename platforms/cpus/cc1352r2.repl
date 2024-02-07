@@ -40,6 +40,8 @@ uart1: UART.PL011 @ sysbus 0x4000B000
 uDma: DMA.UDMA @ sysbus 0x40020000
     -> nvic@46
 
+// TODO: byte write support
+// 23:11:58.0762 [WARNING] gpioA: [cpu: 0x3F6A] Attempted Byte write isn't supported by the peripheral. Offset 0x6, value 0x0.
 gpioA: GPIOPort.CC2538_GPIO @ sysbus 0x40022000
     -> nvic@0
 
@@ -69,7 +71,7 @@ vims: Memory.MappedMemory @ sysbus 0x40034000
 // this is definitely wrong, cc1352r2 radio is totally different,
 // there is a register based interface plus RAM from the Radio's cortex-M0 mapped
 // into same global address space.
-radio: Wireless.CC2538RF @ sysbus 0x40040000
+radio: Wireless.CC13x2RF @ sysbus 0x40040000
     IRQ -> nvic@141 | nvic@26
 
 watchdog: Timers.CC2538Watchdog @ sysbus 0x40080000
@@ -122,6 +124,9 @@ aon_event: Memory.MappedMemory @ sysbus 0x40093000
 aon_batmon: Memory.MappedMemory @ sysbus 0x40095000
     size: 0x1000
 
+aux_ddi0_osc: Memory.MappedMemory @ sysbus 0x400CA000
+    size: 0x1000
+
 // TODO: read only constants ; is there no better way to implement??
 ffcg1: Memory.MappedMemory @ sysbus 0x50001000
     size: 0x1000
@@ -139,6 +144,16 @@ ccfg: Memory.MappedMemory @ sysbus 0x50003000
         WriteDoubleWord 0x1FB0 0xffffffff
         // MODE_CONF 11.2.1.4
         WriteDoubleWord 0x1FB4 0xffffffff
+
+// 23:11:57.8829 [INFO] cpu: Entering function NOROM_SetupTrimDevice at 0x5CC4
+// 23:11:57.8841 [WARNING] sysbus: [cpu: 0x5CC4] WriteDoubleWord to non existing peripheral at 0x42600484, value 0x0.
+// 23:11:57.8851 [WARNING] sysbus: [cpu: 0x10004356] ReadDoubleWord from non existing peripheral at 0x4268000C.
+// 23:11:57.8866 [WARNING] sysbus: [cpu: 0x5CD2] ReadDoubleWord from non existing peripheral at 0x43280180.
+// 23:11:57.8878 [WARNING] sysbus: [cpu: 0x5D18] WriteDoubleWord to non existing peripheral at 0x4324001C, value 0x1.
+// 23:11:57.8918 [WARNING] sysbus: [cpu: 0x5D28] WriteDoubleWord to non existing peripheral at 0x43240000, value 0x1.
+// 23:11:57.8921 [WARNING] sysbus: [cpu: 0x5D28] ReadDoubleWord from non existing peripheral at 0x4268000C.
+// 23:11:57.9798 [WARNING] sysbus: [cpu: 0x5752] WriteDoubleWord to non existing peripheral at 0x43240280, value 0x1.
+// 23:11:57.9854 [WARNING] sysbus: [cpu: 0x44EE] WriteDoubleWord to non existing peripheral at 0x60082028, value 0x1.
 
 sysbus:
     init:
