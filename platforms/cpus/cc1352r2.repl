@@ -74,6 +74,12 @@ vims: Memory.MappedMemory @ sysbus 0x40034000
 radio: Wireless.CC13x2RF @ sysbus 0x40040000
     IRQ -> nvic@141 | nvic@26
 
+// raising interrupt 44 (seems to be the right now)
+// sysbus.nvic SetPendingIRQ 44
+// triggers this endless loop: (so: missing emulation - need to return some value)
+// 01:03:37.9070 [INFO] cpu: Entering function runCalibrateFsm at 0x4802
+// 01:03:37.9072 [WARNING] sysbus: [cpu: 0x4802] ReadDoubleWord from non existing peripheral at 0x400C6054.
+
 watchdog: Timers.CC2538Watchdog @ sysbus 0x40080000
     periodInMs: 500
 
