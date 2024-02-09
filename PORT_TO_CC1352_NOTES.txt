@@ -1,3 +1,18 @@
+So can trigger the radio interrupts (which are part of emulating the radio interface)
+- 25 and 26
+
+need *first* to trigger 44, why did I try that? but it worked.
+
+25 and 26 call
+1.1                         y   0x00002a2c in RF_hwiCpe0PowerFsm at /project/source/ti/drivers/rf/RFCC26X2_multiMode.c:2727
+1.2                         y   0x00002a68 in RF_hwiCpe0PowerFsm at /project/source/ti/drivers/rf/RFCC26X2_multiMode.c:2752
+2       breakpoint     keep y   0x00001990 in RF_hwiHw at /project/source/ti/drivers/rf/RFCC26X2_multiMode.c:2305
+
+which checks the door bell register - of course.
+
+so more emulation time.
+
+--
 did the python route, wrong address? thought it was 0x50, but getting this endlessly:
 
 00:55:56.1725 [INFO] cpu: Entering function runCalibrateFsm at 0x4802
