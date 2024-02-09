@@ -14,9 +14,16 @@ rom: Memory.MappedMemory @ sysbus 0x10000000
 ram: Memory.MappedMemory @ sysbus 0x20000000
     size: 0x14000
 
-// hmm? leaving as is.
-bitband: Miscellaneous.BitBanding @ sysbus <0x22000000, +0x20000>
+// Bit Banding is implemented as usual, and used by TI DriverLib:
+// 32 MB above Peripheral base and above SRAM base. (hex: 2000000)
+// this one is for SRAM - based at 20000000 so 22000000
+// and for a single MB, so size 0x100000 * 0x20 -> 0x2000000
+// See: Cortex M4 Processor Technical Reference Manual.pdf section 3.7 Bit-banding
+bitband_sram: Miscellaneous.BitBanding @ sysbus <0x22000000, +0x2000000>
     peripheralBase: 0x20000000
+
+bitband_peripheral: Miscellaneous.BitBanding @ sysbus <0x42000000, +0x2000000>
+    peripheralBase: 0x40000000
 
 // unhandled read from offset 0x8, and write of 2 to same
 nvic: IRQControllers.NVIC @ sysbus 0xE000E000
@@ -42,8 +49,12 @@ uDma: DMA.UDMA @ sysbus 0x40020000
 
 // TODO: byte write support
 // 23:11:58.0762 [WARNING] gpioA: [cpu: 0x3F6A] Attempted Byte write isn't supported by the peripheral. Offset 0x6, value 0x0.
-gpioA: GPIOPort.CC2538_GPIO @ sysbus 0x40022000
-    -> nvic@0
+// Proper support requires allowing byte access to the first 32 bytes
+// note that due to bit-banding, you can also use 0x80 (read write to all 32 bits) via the bit banding region to get double word
+// access - I guess byte access is sometimes preferable?
+// anyway: for now just use memory mapping. The CC2538 is completely different it seems (no byte addressable registers)
+gpioA: Memory.MappedMemory @ sysbus 0x40022000
+    size: 0x1000
 
 // hmm? is there crypto?
 crypto: Miscellaneous.CC2538_Cryptoprocessor @ sysbus 0x40024000
@@ -72,6 +83,9 @@ vims: Memory.MappedMemory @ sysbus 0x40034000
 // there is a register based interface plus RAM from the Radio's cortex-M0 mapped
 // into same global address space.
 radio: Wireless.CC13x2RF @ sysbus 0x40040000
+    // do I need to define size twice? I thought it is defined in the preipheral with
+    //    82          public long Size { get { return 0x4000; } }
+    // via implementing IKnownSize
     IRQ -> nvic@141 | nvic@26
 
 // raising interrupt 44 (seems to be the right now)
@@ -127,11 +141,24 @@ aon_rtc: Memory.MappedMemory @ sysbus 0x40092000
 aon_event: Memory.MappedMemory @ sysbus 0x40093000
     size: 0x1000
 
+// AON_IOC AON I/O Controller 0x4009 4000
+// Chapter 13 - I/O Controller (page 1089 in "CC13x2,CC26x2 SimpleLinkTM Wireless MCU Technical Reference Manual (Rev. F)")
+aoi_ioc: Memory.MappedMemory @ sysbus 0x40094000
+    size: 0x1000
+
 aon_batmon: Memory.MappedMemory @ sysbus 0x40095000
     size: 0x1000
 
 aux_ddi0_osc: Memory.MappedMemory @ sysbus 0x400CA000
     size: 0x1000
+
+// Radio uses this for calibration - AUX_SYSIF_TDCCLKCTL_ACK
+// aux_sysif: Memory.MappedMemory @ sysbus 0x400C6000
+//     size: 0x1000
+aux_sysif: Python.PythonPeripheral @ sysbus 0x400C6000
+    size: 0x1000
+    initable: true
+    filename: "scripts/pydev/cc13x2_aux_sysif.py"
 
 // TODO: read only constants ; is there no better way to implement??
 ffcg1: Memory.MappedMemory @ sysbus 0x50001000
@@ -163,33 +190,7 @@ ccfg: Memory.MappedMemory @ sysbus 0x50003000
 
 sysbus:
     init:
-        // no idea - called from NOROM_SetupTrimDevice before main call
-        // so related to flash?
-        // 23:24:02.7418 [WARNING] sysbus: [cpu: 0x5CC8] WriteDoubleWord to non existing peripheral at 0x42600484, value 0x0.
-        // 23:24:02.7423 [INFO] cpu: Entering function SetupSetCacheModeAccordingToCcfgSetting (entry) at 0x10004356
-        // 23:24:02.7434 [WARNING] sysbus: [cpu: 0x10004356] ReadDoubleWord from non existing peripheral at 0x4268000C.
-        // 23:24:02.7435 [INFO] cpu: Entering function SetupSetCacheModeAccordingToCcfgSetting at 0x1000435E
-        // 23:24:02.7443 [INFO] cpu: Entering function SetupSetCacheModeAccordingToCcfgSetting at 0x10004374
-        // 23:24:02.7444 [INFO] cpu: Entering function OSC_HPOSCRelativeFrequencyOffsetToRFCoreFormatConvert at 0x10003BEC
-        // 23:24:02.7445 [INFO] cpu: Entering function PRCMPeripheralDeepSleepEnable at 0x10003638
-        // 23:24:02.7445 [INFO] cpu: Entering function NOROM_SetupTrimDevice at 0x5CD2
-        // 23:24:02.7446 [WARNING] sysbus: [cpu: 0x5CD2] ReadDoubleWord from non existing peripheral at 0x43280180.
-        // 23:24:02.7447 [INFO] cpu: Entering function NOROM_SetupTrimDevice at 0x5CE2
-        // 23:24:02.7456 [INFO] cpu: Entering function NOROM_SetupTrimDevice at 0x5D18
-        // 23:24:02.7457 [WARNING] sysbus: [cpu: 0x5D18] WriteDoubleWord to non existing peripheral at 0x4324001C, value 0x1.
-        // 23:24:02.7458 [INFO] cpu: Entering function IntPendClear (entry) at 0x100030C4
-        // 23:24:02.7458 [INFO] cpu: Entering function IntPendClear at 0x100030CC
-        // 23:24:02.7459 [INFO] cpu: Entering function IntPendClear at 0x100030D0
-        // 23:24:02.7460 [INFO] cpu: Entering function IntPendClear at 0x100030DE
-        // 23:24:02.7461 [INFO] nvic: [cpu: 0x100030DE] WriteUInt32 to 0x280 (ClearPending), value 0x10.
-        // 23:24:02.7476 [INFO] cpu: Entering function NOROM_SetupTrimDevice at 0x5D28
-        // 23:24:02.7481 [WARNING] sysbus: [cpu: 0x5D28] WriteDoubleWord to non existing peripheral at 0x43240000, value 0x1.
-        // 23:24:02.7482 [WARNING] sysbus: [cpu: 0x5D28] ReadDoubleWord from non existing peripheral at 0x4268000C.
-        // also later from TimerP_start
-        // 23:24:02.8334 [INFO] cpu: Entering function TimerP_start at 0x5746
-        // 23:24:02.8334 [WARNING] sysbus: [cpu: 0x5752] WriteDoubleWord to non existing peripheral at 0x43240280, value 0x1.
-        SilenceRange <0x426000000, 0x43250000>
-
+        // bit-banding was the mystery. not documented in the CC13x2 manual since it is a core M4 feature.
         Tag <0x400D2000, 0x400D2FFF> "SYS_CTRL_CLOCK_CTRL" 1
         Tag <0x40088664, 0x40088667> "RFCORE_XREG_RSSISTAT" 1
         Tag <0x400D2004, 0x400D2007> "CLOCK_STATUS" 0x10004B0
@@ -199,3 +200,9 @@ sysbus:
         Tag <0x40012000, 0x40012FFF> "GPTIMER2"
         Tag <0x40013000, 0x40013FFF> "GPTIMER3"
         Tag <0x40080000, 0x400800FF> "STIMER_WTDG"
+
+// Remaining:
+// flash ctrl emulation
+// radio emulation
+// 00:19:18.9896 [WARNING] sysbus: [cpu: 0x44EE] WriteDoubleWord to non existing peripheral at 0x60082028, value 0x1.
+// 00:19:19.1741 [WARNING] sysbus: [cpu: 0x2C74] WriteDoubleWord to non existing peripheral at 0x60040000, value 0x7.

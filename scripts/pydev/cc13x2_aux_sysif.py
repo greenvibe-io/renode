@@ -7,7 +7,7 @@ if request.isWrite:
     mem[request.offset] = request.value
 
 if request.isRead:
-    if request.offset == 0x50:
+    if request.offset == 0x54:
         # always say we have acked
         request.value = 0x2
     else:

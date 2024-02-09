@@ -1,3 +1,30 @@
+did the python route, wrong address? thought it was 0x50, but getting this endlessly:
+
+00:55:56.1725 [INFO] cpu: Entering function runCalibrateFsm at 0x4802
+00:55:56.1725 [INFO] aux_sysif: [cpu: 0x4802] ReadUInt32 from 0x54 (unknown), returned 0x1.
+
+in 
+runCalibrateFsm () at power/PowerCC26X2_calibrateRCOSC.c:337
+337                     AUX_SYSIF_TDCCLKCTL_ACK));
+
+
+
+--
+
+Missing AUX_SYSIF emulation for TDCCLKCTL, specifically
+ - req set (write of 1)
+ - need to return ack set (read returns xxxxxx1x, i.e. second bit set, value 2)
+
+can use python impl - scripts/flipflop.py as example
+ -   gclk_phctrl1: Python.PythonPeripheral @ sysbus 0x40001c84
+         size: 0x4
+         initable: true
+         filename: "scripts/pydev/flipflop.py"
+can create a whole peripheral in src/Infrastructure/src/Peripherals/Peripherals/something.cs
+
+--
+
+
 Need to emulate the registers used by GetChipFamily and return 4 (FAMILY_CC13x2_CC26x2, chipinfo.h)
 and ChipInfo_HwRevisionIs_GTEQ_2_0
 
