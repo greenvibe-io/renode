@@ -7,6 +7,8 @@ cpu GetRegistersValues
 # Debugging measures
 cpu LogFunctionNames true
 sysbus LogAllPeripheralsAccess true
+# uart0 specific
+sysbus LogPeripheralAccess uart0 true
 # cpu EnableExecutionTracing @path-to-file <mode>
 # Load ROM
 sysbus LoadELF "../ti_rtos_cc13x2_cc26x2/rom/driverlib.elf"
