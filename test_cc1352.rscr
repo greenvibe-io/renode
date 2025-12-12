@@ -5,8 +5,9 @@ showAnalyzer uart0
 # Load ROM
 sysbus LoadELF "../ti_rtos_cc13x2_cc26x2/rom/driverlib.elf"
 # Load program
-sysbus LoadELF "../gv-usd-device-and-hub/gvdevice/gvdevice.out"
+sysbus LoadELF "../../greenvibe/src/gv-firmware/gvhub/1_1352_1/gvhub.out"
 cpu GetRegistersValues
+machine StartGdbServer 3333
 # Debugging measures
 sysbus LogAllPeripheralsAccess true
-start
+reverseExecMode true
